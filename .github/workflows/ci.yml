@@ -1,0 +1,35 @@
+name: CI - lint & validate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate scripts & JSON
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq shellcheck
+
+      - name: Run shellcheck on scripts
+        run: |
+          echo "Running shellcheck on scripts/*.sh"
+          shellcheck -x scripts/*.sh || (echo "shellcheck failed" && exit 1)
+
+      - name: Validate CloudWatch JSON
+        run: |
+          echo "Validating cloudwatch-agent/amazon-cloudwatch-agent.json"
+          jq -e . cloudwatch-agent/amazon-cloudwatch-agent.json >/dev/null
+
+      - name: Validate dashboard JSON
+        run: |
+          echo "Validating fail2ban-dashboard.json"
+          jq -e . fail2ban-dashboard.json >/dev/null
