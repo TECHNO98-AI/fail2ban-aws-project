@@ -1,0 +1,51 @@
+{
+  "widgets": [
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 0,
+      "width": 12,
+      "height": 6,
+      "properties": {
+        "metrics": [
+          [ "Fail2Ban", "BanCount", "InstanceId", "i-0d44bd8905103e53f" ],
+          [ "Fail2Ban", "UnbanCount", "InstanceId", "i-0d44bd8905103e53f" ]
+        ],
+        "view": "timeSeries",
+        "stacked": false,
+        "region": "ap-south-1",
+        "title": "Fail2Ban — Bans & Unbans (per instance)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 0,
+      "y": 6,
+      "width": 12,
+      "height": 3,
+      "properties": {
+        "metrics": [
+          [ "Fail2Ban", "BanCount", "InstanceId", "i-0d44bd8905103e53f", { "stat": "Sum", "period": 300 } ]
+        ],
+        "view": "singleValue",
+        "region": "ap-south-1",
+        "title": "BanCount (5m Sum)"
+      }
+    },
+    {
+      "type": "metric",
+      "x": 12,
+      "y": 6,
+      "width": 12,
+      "height": 3,
+      "properties": {
+        "metrics": [
+          [ "Fail2Ban", "UnbanCount", "InstanceId", "i-0d44bd8905103e53f", { "stat": "Sum", "period": 300 } ]
+        ],
+        "view": "singleValue",
+        "region": "ap-south-1",
+        "title": "UnbanCount (5m Sum)"
+      }
+    }
+  ]
+}

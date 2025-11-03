@@ -1,0 +1,19 @@
+# macOS
+.DS_Store
+
+# python caches / logs
+__pycache__/
+*.log
+
+# cloudwatch agent temp/state
+/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.d/
+/opt/aws/amazon-cloudwatch-agent/logs/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+terraform.tfvars
