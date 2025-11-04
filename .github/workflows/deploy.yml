@@ -1,0 +1,58 @@
+name: Deploy Fail2Ban AWS Lambda
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+  LAMBDA_FUNCTION_NAME: fail2ban-auto-block
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies and package lambda
+        run: |
+          pip install boto3 -t ./package
+          cp fail2ban_lambda.py ./package/
+          cd package && zip -r ../lambda.zip .
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Upload package to S3
+        run: |
+          aws s3 cp lambda.zip s3://${{ secrets.S3_BUCKET_NAME }}/lambda/fail2ban-lambda.zip
+
+      - name: Deploy Lambda function
+        run: |
+          aws lambda update-function-code \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --s3-bucket ${{ secrets.S3_BUCKET_NAME }} \
+            --s3-key lambda/fail2ban-lambda.zip \
+            --region ${{ secrets.AWS_REGION }} || \
+          aws lambda create-function \
+            --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
+            --runtime python3.9 \
+            --role "arn:aws:iam::113436413547:role/MyFail2BanRole" \
+            --handler fail2ban_lambda.lambda_handler \
+            --code S3Bucket=${{ secrets.S3_BUCKET_NAME }},S3Key=lambda/fail2ban-lambda.zip \
+            --timeout 30 \
+            --memory-size 128
