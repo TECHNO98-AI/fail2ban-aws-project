@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+  S3_BUCKET_NAME: ${{ secrets.DEPLOY_S3_BUCKET }}
   LAMBDA_FUNCTION_NAME: fail2ban-auto-block
 
 jobs:
@@ -39,13 +39,13 @@ jobs:
 
       - name: Upload package to S3
         run: |
-          aws s3 cp lambda.zip s3://${{ secrets.S3_BUCKET_NAME }}/lambda/fail2ban-lambda.zip
+          aws s3 cp lambda.zip s3://${{ secrets.DEPLOY_S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ secrets.AWS_REGION }}
 
       - name: Deploy Lambda function
         run: |
           aws lambda update-function-code \
             --function-name ${{ env.LAMBDA_FUNCTION_NAME }} \
-            --s3-bucket ${{ secrets.S3_BUCKET_NAME }} \
+            --s3-bucket ${{ secrets.DEPLOY_S3_BUCKET }} \
             --s3-key lambda/fail2ban-lambda.zip \
             --region ${{ secrets.AWS_REGION }} || \
           aws lambda create-function \
@@ -53,6 +53,6 @@ jobs:
             --runtime python3.9 \
             --role "arn:aws:iam::113436413547:role/MyFail2BanRole" \
             --handler fail2ban_lambda.lambda_handler \
-            --code S3Bucket=${{ secrets.S3_BUCKET_NAME }},S3Key=lambda/fail2ban-lambda.zip \
+            --code S3Bucket=${{ secrets.DEPLOY_S3_BUCKET }},S3Key=lambda/fail2ban-lambda.zip \
             --timeout 30 \
             --memory-size 128
