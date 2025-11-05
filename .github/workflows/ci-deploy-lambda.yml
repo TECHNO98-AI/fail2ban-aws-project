@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
-  LAMBDA_FUNCTION_NAME: fail2ban-auto-block
+  LAMBDA_FUNCTION_NAME: ${{ secrets.LAMBDA_FUNCTION_NAME }}
 
 jobs:
   build-and-deploy:
@@ -45,16 +45,16 @@ jobs:
       - name: Deploy (update or create)
         run: |
           if aws lambda update-function-code \
-            --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+            --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
             --s3-bucket "${{ secrets.DEPLOY_S3_BUCKET }}" \
             --s3-key lambda/fail2ban-lambda.zip \
             --region "${{ secrets.AWS_REGION }}"; then
-            echo "Lambda updated"
+            echo "✅ Lambda updated successfully"
           else
             aws lambda create-function \
-              --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
+              --function-name "${{ secrets.LAMBDA_FUNCTION_NAME }}" \
               --runtime python3.11 \
-              --role "arn:aws:iam::113436413547:role/MyFail2BanRole" \
+              --role "${{ secrets.LAMBDA_ROLE_ARN }}" \
               --handler fail2ban_lambda.lambda_handler \
               --code S3Bucket=${{ secrets.DEPLOY_S3_BUCKET }},S3Key=lambda/fail2ban-lambda.zip \
               --timeout 30 \
