@@ -8,7 +8,6 @@ on:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  DEPLOY_S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
   S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
   LAMBDA_FUNCTION_NAME: fail2ban-auto-block
 
@@ -20,38 +19,44 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
-      - name: Install dependencies and package Lambda
+      - name: Install dependencies and package lambda
         run: |
           rm -rf package lambda.zip || true
           mkdir -p package
-          pip install boto3 -t ./package
+          pip install boto3 -t ./package || true
           cp fail2ban_lambda.py ./package/ || true
           cd package || exit 1
           zip -r ../lambda.zip .
           cd ..
-          echo "✅ lambda.zip created successfully:"
-          ls -lh lambda.zip
+          echo "📦 Contents of workspace after zipping:"
+          ls -lh
+          test -f lambda.zip && echo "✅ lambda.zip created successfully" || (echo "❌ lambda.zip missing!" && exit 1)
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          role-to-assume: arn:aws:iam::113436413547:role/GitHubOIDCDeployRole
+          aws-region: ap-south-1
 
       - name: Debug - Show AWS caller identity
         run: aws sts get-caller-identity
 
       - name: Upload Lambda package to S3
         run: |
-          echo "📦 Uploading lambda.zip to S3..."
-          aws s3 cp lambda.zip s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ env.AWS_REGION }}
-          echo "✅ Upload complete!"
+          echo "📦 Uploading ./lambda.zip to s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip ..."
+          if [ -f "./lambda.zip" ]; then
+            aws s3 cp ./lambda.zip s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ env.AWS_REGION }}
+            echo "✅ Upload complete!"
+          else
+            echo "❌ ./lambda.zip not present in workspace. Listing files:"
+            ls -lah
+            exit 1
+          fi
 
       - name: Deploy Lambda function (update or create)
         run: |
@@ -79,9 +84,9 @@ jobs:
       - name: Test Lambda after deploy
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          LAMBDA_FUNCTION_NAME: fail2ban-auto-block
+          LAMBDA_FUNCTION_NAME: ${{ env.LAMBDA_FUNCTION_NAME }}
         run: |
-          echo "🧪 Invoking Lambda to verify deployment..."
+          echo "Invoking Lambda to verify deployment..."
           aws lambda invoke \
             --function-name "$LAMBDA_FUNCTION_NAME" \
             --payload '{}' \
