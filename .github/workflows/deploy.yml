@@ -9,22 +9,83 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   DEPLOY_S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
-  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC  S3_BUCKET:  S3_BUCT  S3_BUCKET:  S3_BUCKET:  S3_BUjo  S3_BUCKET:  d-  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC st  S3_BUCKET:  S3_BUCKET:  t r  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC
-                                                      p-                                                                    p-    ta                                                      p-            ka                                              ge
-                                                                                   -e                                    ge                                                                                   -e                                    ge     ech                                                      ambda update-function-code \
+  S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
+  LAMBDA_FUNCTION_NAME: fail2ban-auto-block
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies and package Lambda
+        run: |
+          rm -rf package lambda.zip || true
+          mkdir -p package
+          pip install boto3 -t ./package
+          cp fail2ban_lambda.py ./package/ || true
+          cd package || exit 1
+          zip -r ../lambda.zip .
+          cd ..
+          echo "✅ lambda.zip created successfully:"
+          ls -lh lambda.zip
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Debug - Show AWS caller identity
+        run: aws sts get-caller-identity
+
+      - name: Upload Lambda package to S3
+        run: |
+          echo "📦 Uploading lambda.zip to S3..."
+          aws s3 cp lambda.zip s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ env.AWS_REGION }}
+          echo "✅ Upload complete!"
+
+      - name: Deploy Lambda function (update or create)
+        run: |
+          set -euo pipefail
+          if aws lambda get-function --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" --region "${{ env.AWS_REGION }}" >/dev/null 2>&1; then
+            echo "🔁 Updating existing Lambda code..."
+            aws lambda update-function-code \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
               --s3-bucket "${{ env.S3_BUCKET }}" \
               --s3-key "lambda/fail2ban-lambda.zip" \
               --region "${{ env.AWS_REGION }}"
           else
-            echo "🆕 Creating new Lambda..."
+            echo "🆕 Creating Lambda for first deploy..."
             aws lambda create-function \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
-              --runtime python3.9 \
+              --runtime python3.11 \
               --role "${{ secrets.LAMBDA_ROLE_ARN }}" \
               --handler fail2ban_lambda.lambda_handler \
               --code S3Bucket="${{ env.S3_BUCKET }}",S3Key="lambda/fail2ban-lambda.zip" \
               --timeout 30 \
-              --memory-size 128 \
+              --memory-size 256 \
               --region "${{ env.AWS_REGION }}"
           fi
+
+      - name: Test Lambda after deploy
+        env:
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          LAMBDA_FUNCTION_NAME: fail2ban-auto-block
+        run: |
+          echo "🧪 Invoking Lambda to verify deployment..."
+          aws lambda invoke \
+            --function-name "$LAMBDA_FUNCTION_NAME" \
+            --payload '{}' \
+            --region "$AWS_REGION" /tmp/lambda_test_response.json
+          echo "---- Lambda invoke response ----"
+          cat /tmp/lambda_test_response.json || true
+          echo "✅ Post-deploy test completed!"
