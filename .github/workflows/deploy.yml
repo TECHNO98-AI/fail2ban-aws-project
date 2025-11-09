@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   DEPLOY_S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
-  S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}   # ensure deploy script sees S3_BUCKET
+  S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
   LAMBDA_FUNCTION_NAME: fail2ban-auto-block
 
 jobs:
@@ -27,12 +27,17 @@ jobs:
 
       - name: Install dependencies and package lambda
         run: |
-          rm -rf package || true
+          echo "🧰 Preparing Lambda package"
+          rm -rf package lambda.zip || true
           mkdir -p package
           pip install boto3 -t ./package
           cp fail2ban_lambda.py ./package/ || true
-          cd package && zip -r ../lambda.zip .
-          ls -l lambda.zip
+          cd package
+          zip -r ../lambda.zip .
+          cd ..
+          echo "📦 Contents of workspace after zipping:"
+          ls -lh
+          test -f lambda.zip && echo "✅ lambda.zip created successfully" || (echo "❌ lambda.zip missing!" && exit 1)
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -44,39 +49,30 @@ jobs:
       - name: Debug - show caller identity (ensure credentials are loaded)
         run: aws sts get-caller-identity
 
-      - name: Make deploy script executable
-        run: chmod +x .github/deploy/deploy.sh
-
-      - name: Run deploy script (uploads artifacts -> S3)
-        env:
-          S3_BUCKET: ${{ env.S3_BUCKET }}
-          AWS_REGION: ${{ env.AWS_REGION }}
+      - name: Upload lambda.zip to S3
         run: |
-          echo "Running deploy script with S3_BUCKET=${S3_BUCKET} AWS_REGION=${AWS_REGION}"
-          .github/deploy/deploy.sh
+          echo "🚀 Uploading lambda.zip to s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip ..."
+          aws s3 cp lambda.zip s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ env.AWS_REGION }}
+          echo "✅ Uploaded successfully."
 
       - name: Deploy Lambda function (update or create)
         run: |
           set -euo pipefail
           if aws lambda get-function --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" --region "${{ env.AWS_REGION }}" >/dev/null 2>&1; then
-            echo "Updating existing Lambda function code..."
+            echo "🔁 Updating existing Lambda code..."
             aws lambda update-function-code \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
-              --s3-bucket "${{ env.DEPLOY_S3_BUCKET }}" \
-              --s3-key "fail2ban-artifacts/${GITHUB_SHA:-manual-}/fail2ban-lambda.zip" \
+              --s3-bucket "${{ env.S3_BUCKET }}" \
+              --s3-key "lambda/fail2ban-lambda.zip" \
               --region "${{ env.AWS_REGION }}"
           else
-            echo "Creating Lambda function (first time deploy)..."
-            if [ -z "${{ secrets.LAMBDA_ROLE_ARN }}" ]; then
-              echo "ERROR: LAMBDA_ROLE_ARN secret is empty or missing" >&2
-              exit 1
-            fi
+            echo "🆕 Creating Lambda for first deploy..."
             aws lambda create-function \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
               --runtime python3.9 \
               --role "${{ secrets.LAMBDA_ROLE_ARN }}" \
               --handler fail2ban_lambda.lambda_handler \
-              --code S3Bucket="${{ env.DEPLOY_S3_BUCKET }}",S3Key="fail2ban-artifacts/${GITHUB_SHA:-manual-}/fail2ban-lambda.zip" \
+              --code S3Bucket="${{ env.S3_BUCKET }}",S3Key="lambda/fail2ban-lambda.zip" \
               --timeout 30 \
               --memory-size 128 \
               --region "${{ env.AWS_REGION }}"
