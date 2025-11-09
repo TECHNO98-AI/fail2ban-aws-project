@@ -9,64 +9,15 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   DEPLOY_S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
-  S3_BUCKET: ${{ secrets.DEPLOY_S3_BUCKET }}
-  LAMBDA_FUNCTION_NAME: fail2ban-auto-block
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.9'
-
-      - name: Install dependencies and package lambda
-        run: |
-          echo "🧰 Preparing Lambda package"
-          rm -rf package lambda.zip || true
-          mkdir -p package
-          pip install boto3 -t ./package
-          cp fail2ban_lambda.py ./package/ || true
-          cd package
-          zip -r ../lambda.zip .
-          cd ..
-          echo "📦 Contents of workspace after zipping:"
-          ls -lh
-          test -f lambda.zip && echo "✅ lambda.zip created successfully" || (echo "❌ lambda.zip missing!" && exit 1)
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
-
-      - name: Debug - show caller identity (ensure credentials are loaded)
-        run: aws sts get-caller-identity
-
-      - name: Upload lambda.zip to S3
-        run: |
-          echo "🚀 Uploading lambda.zip to s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip ..."
-          aws s3 cp lambda.zip s3://${{ env.S3_BUCKET }}/lambda/fail2ban-lambda.zip --region ${{ env.AWS_REGION }}
-          echo "✅ Uploaded successfully."
-
-      - name: Deploy Lambda function (update or create)
-        run: |
-          set -euo pipefail
-          if aws lambda get-function --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" --region "${{ env.AWS_REGION }}" >/dev/null 2>&1; then
-            echo "🔁 Updating existing Lambda code..."
-            aws lambda update-function-code \
+  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC  S3_BUCKET:  S3_BUCT  S3_BUCKET:  S3_BUCKET:  S3_BUjo  S3_BUCKET:  d-  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC st  S3_BUCKET:  S3_BUCKET:  t r  S3_BUCKET:  S3_BUCKET:  S3_BUCKET:UC
+                                                      p-                                                                    p-    ta                                                      p-            ka                                              ge
+                                                                                   -e                                    ge                                                                                   -e                                    ge     ech                                                      ambda update-function-code \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
               --s3-bucket "${{ env.S3_BUCKET }}" \
               --s3-key "lambda/fail2ban-lambda.zip" \
               --region "${{ env.AWS_REGION }}"
           else
-            echo "🆕 Creating Lambda for first deploy..."
+            echo "🆕 Creating new Lambda..."
             aws lambda create-function \
               --function-name "${{ env.LAMBDA_FUNCTION_NAME }}" \
               --runtime python3.9 \
