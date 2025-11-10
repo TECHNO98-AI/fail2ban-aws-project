@@ -1,0 +1,51 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Fail2Ban logging -> CloudWatch metric filters -> SNS alarm
+
+Resources:
+  Fail2BanSNSTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: fail2ban-alerts
+
+  Fail2BanSNSTopicSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref Fail2BanSNSTopic
+      Protocol: email
+      Endpoint: "jediskywalker80@gmail.com"
+
+  Fail2BanNotifyBlocksMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: "/fail2ban/notify_ban"
+      FilterPattern: '"BLOCKED"'
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "Fail2Ban"
+          MetricName: "Notify_Blocks"
+
+  Fail2BanBansMetricFilter:
+    Type: AWS::Logs::MetricFilter
+    Properties:
+      LogGroupName: "/fail2ban/notify_ban"
+      FilterPattern: '"Action: ban"'
+      MetricTransformations:
+        - MetricValue: "1"
+          MetricNamespace: "Fail2Ban"
+          MetricName: "Fail2BanBans"
+
+  Fail2BanNotifyAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName: "Fail2Ban-Notify-Block-Alarm"
+      AlarmDescription: "Alert when notify_ban log group reports a Block event"
+      Namespace: "Fail2Ban"
+      MetricName: "Notify_Blocks"
+      Statistic: Sum
+      Period: 300
+      EvaluationPeriods: 1
+      Threshold: 0
+      ComparisonOperator: GreaterThanThreshold
+      AlarmActions:
+        - !Ref Fail2BanSNSTopic
+      TreatMissingData: notBreaching
