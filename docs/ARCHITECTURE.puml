@@ -1,0 +1,33 @@
+@startuml
+title Fail2Ban — Cloud Security Dashboard (AWS) - Architecture
+
+left to right direction
+skinparam handwritten false
+
+actor "Fail2Ban (host)" as Fail2Ban
+node "CloudWatch Logs" as CWLogs
+node "CloudWatch Metric Filter" as MetricFilter
+node "CloudWatch Alarm" as Alarm
+node "SNS Topic" as SNS
+node "Email / Webhook / Pager" as NOTIFIER
+node "Lambda (auto-block / enrichment)" as Lambda
+database "S3 (artifact bucket)" as S3
+cloud "GitHub Actions (OIDC)" as GHActions
+
+Fail2Ban --> CWLogs : pushes notify events (BLOCKED / Action: ban)
+CWLogs --> MetricFilter : apply filter -> Notify_Blocks metric
+MetricFilter --> Alarm : emit metric datapoint
+Alarm --> SNS : alarm action (SNS topic)
+SNS --> NOTIFIER : email / webhook / ChatOps
+Alarm --> Lambda : optional invoke for automation
+GHActions --> S3 : upload lambda.zip/artifacts
+GHActions --> Lambda : deploy / update function via OIDC role
+
+note right of Lambda
+ Lambda performs:
+  - IP enrichment (geo, ASN)
+  - Update blacklist (network ACL / firewall / WAF)
+  - Post-process and store artifacts in S3
+end note
+
+@enduml
