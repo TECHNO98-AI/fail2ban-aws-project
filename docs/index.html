@@ -67,6 +67,8 @@
 </section>
 
 <script>
+    // ✅ Filter: show only the Fail2Ban AWS project
+    repos = repos.filter(r => r.name === 'fail2ban-aws-project');
 fetch('https://api.github.com/users/TECHNO98-AI/repos?per_page=100')
   .then(r => r.json())
   .then(repos => {
