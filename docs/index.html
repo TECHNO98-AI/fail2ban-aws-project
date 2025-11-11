@@ -19,8 +19,14 @@
     </div>
   </header>
 <img src="assets/banner-dalle.svg" alt="DevOps banner" style="width:100%;height:auto;display:block;margin:12px 0;"/>
+<p style="margin:8px 0;">
+  <img src="https://img.shields.io/github/stars/TECHNO98-AI/fail2ban-aws-project?style=flat&color=9cf" alt="stars" />
+  <img src="https://img.shields.io/github/last-commit/TECHNO98-AI/fail2ban-aws-project?style=flat" alt="last commit" />
+  <img src="https://img.shields.io/github/license/TECHNO98-AI/fail2ban-aws-project?style=flat" alt="license" />
+  <img src="https://img.shields.io/badge/pages-GitHub%20Pages-blue?style=flat" alt="pages" />
+</p>
 <figure style="margin:18px 0;text-align:center;">
-  <img src="assets/ARCHITECTURE.png" alt="Architecture diagram" style="max-width:100%;height:auto;border:1px solid rgba(255,255,255,0.04);box-shadow:0 6px 18px rgba(0,0,0,0.5);"/>
+  <img src="assets/ARCHITECTURE.svg" alt="Architecture diagram" style="max-width:100%;height:auto;border:1px solid rgba(255,255,255,0.04);box-shadow:0 6px 18px rgba(0,0,0,0.5);"/>
   <figcaption style="font-size:12px;opacity:0.8;margin-top:6px;">Fail2Ban — Architecture (generated)</figcaption>
 </figure>
 
@@ -42,6 +48,28 @@
       <h2>Skills & Tools</h2>
       <p>AWS · Terraform · Docker · Kubernetes · Python · GitHub Actions · CloudWatch · DevSecOps</p>
     </section>
+<section id="projects" class="card">
+  <h2>Projects</h2>
+  <ul id="project-list"></ul>
+</section>
+
+<script>
+fetch('https://api.github.com/users/TECHNO98-AI/repos?per_page=100')
+  .then(r => r.json())
+  .then(repos => {
+    const ul = document.getElementById('project-list');
+    if(!ul) return;
+    repos.sort((a,b)=>b.stargazers_count-a.stargazers_count);
+    repos.forEach(r => {
+      if (!r.private) {
+        const li = document.createElement('li');
+        li.innerHTML = '<a href="'+r.html_url+'" target="_blank">'+r.name+'</a>' + (r.description ? " — "+r.description : "");
+        ul.appendChild(li);
+      }
+    });
+  })
+  .catch(()=>{/* ignore */});
+</script>
   </main>
 
   <footer class="site-footer">
