@@ -1,0 +1,21 @@
+:root {
+  --bg:#0b0f12; --card:#0f1720; --muted:#9aa4a8; --accent:#ff6b6b; --accent2:#5de0c6;
+  font-family: Inter, system-ui, sans-serif;
+}
+body.dark {
+  background:linear-gradient(180deg,#06070a 0%, #0b0f12 100%);
+  color:#e6eef2; margin:0;
+}
+.container { max-width:900px; margin:auto; padding:24px; }
+.site-header { padding:28px 0; border-bottom:1px solid rgba(255,255,255,0.1); }
+.site-header h1 { font-size:28px; margin:0; }
+.social a { color:var(--accent2); text-decoration:none; margin-right:12px; }
+.card {
+  background:rgba(255,255,255,0.03);
+  border-radius:8px;
+  padding:18px;
+  margin-top:18px;
+}
+.card h2 { margin:0 0 8px 0; }
+.site-footer { text-align:center; padding:12px; color:var(--muted); border-top:1px solid rgba(255,255,255,0.05); margin-top:24px; }
+a { color:var(--accent2); }
