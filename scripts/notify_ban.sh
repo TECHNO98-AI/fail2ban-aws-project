@@ -10,7 +10,7 @@ JAIL="${3:-}"
 
 # use /tmp for non-root testing; change to /var/log/notify_ban.log when running as root
 LOG_FILE="/tmp/notify_ban.log"
-SNS_TOPIC_ARN="arn:aws:sns:ap-south-1:113436413547:fail2ban-topic-final"
+SNS_TOPIC_ARN="arn:aws:sns:ap-south-1:<AWS_ACCOUNT_ID>:fail2ban-topic-final"
 AWS_REGION="${AWS_REGION:-ap-south-1}"
 
 if [[ -z "$IP" || -z "$ACTION" || -z "$JAIL" ]]; then

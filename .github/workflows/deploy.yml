@@ -40,7 +40,7 @@ jobs:
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::113436413547:role/GitHubOIDCDeployRole
+          role-to-assume: arn:aws:iam::<AWS_ACCOUNT_ID>:role/GitHubOIDCDeployRole
           aws-region: ap-south-1
 
       - name: Debug - Show AWS caller identity
